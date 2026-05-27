@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
 import re
 import string
 import pickle
@@ -106,14 +105,17 @@ h2, h3 {
 
 MODEL_PATH = "mental_health_rnn.h5"
 
+# Check model file
 if not os.path.exists(MODEL_PATH):
     st.error("❌ Model file 'mental_health_rnn.h5' not found.")
     st.stop()
 
+# Check tokenizer
 if not os.path.exists("tokenizer.pkl"):
     st.error("❌ tokenizer.pkl not found.")
     st.stop()
 
+# Check label encoder
 if not os.path.exists("label_encoder.pkl"):
     st.error("❌ label_encoder.pkl not found.")
     st.stop()
@@ -138,12 +140,12 @@ MAX_LEN = 100
 stop_words = set(stopwords.words('english'))
 
 # =========================================================
-# PREPROCESS FUNCTION
+# TEXT PREPROCESSING
 # =========================================================
 
 def preprocess_text(text):
 
-    # Lowercase
+    # Convert to lowercase
     text = text.lower()
 
     # Remove punctuation
@@ -154,10 +156,10 @@ def preprocess_text(text):
     # Remove numbers
     text = re.sub(r'\d+', '', text)
 
-    # Tokenization
+    # Tokenize
     tokens = word_tokenize(text)
 
-    # Stopword removal
+    # Remove stopwords
     tokens = [
         word for word in tokens
         if word not in stop_words
@@ -173,14 +175,17 @@ def predict_emotion(text):
 
     cleaned = preprocess_text(text)
 
+    # Convert text to sequence
     sequence = tokenizer.texts_to_sequences([cleaned])
 
+    # Padding
     padded = pad_sequences(
         sequence,
         maxlen=MAX_LEN,
         padding='post'
     )
 
+    # Prediction
     prediction = model.predict(padded, verbose=0)
 
     predicted_index = np.argmax(prediction)
@@ -198,6 +203,7 @@ def predict_emotion(text):
 # =========================================================
 
 guidance = {
+
     "Anxiety":
     "Take a deep breath. You are stronger than your worries.",
 
@@ -231,7 +237,7 @@ st.markdown("""
 """)
 
 # =========================================================
-# ABOUT PROJECT
+# ABOUT PROJECT SECTION
 # =========================================================
 
 st.header("📘 About the Project")
@@ -291,7 +297,7 @@ if st.button("🔍 Analyze Emotion"):
         emotion, confidence, probs = predict_emotion(user_input)
 
         # =================================================
-        # OUTPUT SECTION
+        # PREDICTION OUTPUT
         # =================================================
 
         st.header("📊 Prediction Output")
