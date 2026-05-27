@@ -1,129 +1,78 @@
-import streamlit as st
-import numpy as np
-import pickle
-import tensorflow as tf
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# --------------------------------------------------
-# Load Model and Preprocessing Objects
-# --------------------------------------------------
-
-model = tf.keras.models.load_model("rnn_model.h5")
-
-with open("tokenizer.pkl", "rb") as f:
-    tokenizer = pickle.load(f)
-
-with open("label_encoder.pkl", "rb") as f:
-    label_encoder = pickle.load(f)
-
-MAX_LEN = 100
-
-# --------------------------------------------------
-# Text Preprocessing Function
-# --------------------------------------------------
-
-def preprocess_text(text):
-    sequence = tokenizer.texts_to_sequences([text])
-    padded = pad_sequences(
-        sequence,
-        maxlen=MAX_LEN,
-        padding='post',
-        truncating='post'
-    )
-    return padded
-
-# --------------------------------------------------
-# Guidance Messages
-# --------------------------------------------------
-
-guidance = {
-    "Anxiety":
-        "Take a short break and talk with someone you trust.",
-    "Depression":
-        "Try a small positive activity such as a walk or journaling.",
-    "Stress":
-        "Practice deep breathing and organize one task at a time.",
-    "Suicidal":
-        "Please seek immediate support from a mental health professional or trusted person.",
-    "Normal":
-        "Keep maintaining healthy habits and positive routines.",
-    "Bipolar":
-        "Maintain regular sleep patterns and follow professional guidance.",
-    "Personality Disorder":
-        "Focus on self-awareness and professional emotional support."
-}
-
-# --------------------------------------------------
-# Page Configuration
-# --------------------------------------------------
-
-st.set_page_config(
-    page_title="Mental Health Sentiment Monitoring",
-    layout="wide"
-)
-
 # ==================================================
-# SECTION 1 — HEADER
+# HEADER SECTION
 # ==================================================
 
-st.title("AI-Based Mental Health Sentiment Monitoring System")
-st.subheader("Emotion Detection using Simple Recurrent Neural Networks")
+st.title("🧠 AI-Based Mental Health Sentiment Monitoring System")
 
-# ==================================================
-# SECTION 2 — ABOUT PROJECT
-# ==================================================
+st.markdown("""
+### Emotion Detection using Simple Recurrent Neural Networks
+""")
 
 st.markdown("---")
-st.header("About the Project")
 
-st.write("""
-### Importance of Emotional AI
-Emotional AI helps machines understand human emotions from text, speech, and behavior. It supports early emotional assessment and mental wellness monitoring.
+# ==================================================
+# ABOUT PROJECT
+# ==================================================
 
-### NLP Applications
-Natural Language Processing (NLP) enables sentiment analysis, emotion detection, chatbots, virtual assistants, recommendation systems, and healthcare applications.
+st.header("📘 About the Project")
 
-### Role of RNN in Sequence Learning
-Simple Recurrent Neural Networks (RNNs) process sequential text data by remembering previous information in a sequence, making them effective for emotion and sentiment classification.
+st.info("""
+### 🌟 Importance of Emotional AI
+• Helps machines understand human emotions  
+• Supports mental wellness monitoring  
+• Enables early emotional assessment  
+
+### 🤖 NLP Applications
+• Sentiment Analysis  
+• Emotion Detection  
+• Chatbots & Virtual Assistants  
+• Healthcare Applications  
+• Social Media Analysis  
+
+### 🔁 Role of RNN in Sequence Learning
+• Processes sequential text data  
+• Remembers previous words using hidden states  
+• Learns emotional patterns in sentences  
 """)
 
 # ==================================================
-# SECTION 3 — USER INPUT
+# USER INPUT SECTION
 # ==================================================
 
 st.markdown("---")
-st.header("Enter Text for Analysis")
 
-st.info("""
-Sample Sentences:
-• I feel nervous and worried about my future.
-• I am very happy today.
-• Nothing seems meaningful anymore.
-• I feel stressed because of my workload.
+st.header("✍️ User Text Input Area")
+
+st.success("""
+### 💡 Sample Sentences
+
+• I feel nervous and worried about my future.  
+• I am very happy today.  
+• Nothing seems meaningful anymore.  
+• I feel stressed because of my workload.  
 """)
 
 user_text = st.text_area(
-    "Your Text",
-    height=180,
+    "📝 Enter Your Thoughts or Feelings",
+    height=200,
     placeholder="Enter your thoughts or feelings here..."
 )
 
 # ==================================================
-# SECTION 4 — PREDICTION BUTTON
+# BUTTON SECTION
 # ==================================================
 
-predict_btn = st.button("Analyze Emotion")
+predict_btn = st.button("🔍 Analyze Emotion")
 
 # ==================================================
-# SECTION 5, 6, 7
+# PREDICTION SECTION
 # ==================================================
 
 if predict_btn:
 
     if user_text.strip() == "":
-        st.warning("Please enter some text.")
+        st.warning("⚠️ Please enter some text.")
+
     else:
 
         processed_text = preprocess_text(user_text)
@@ -131,18 +80,20 @@ if predict_btn:
         prediction = model.predict(processed_text, verbose=0)
 
         predicted_index = np.argmax(prediction)
+
         confidence = float(np.max(prediction))
 
         predicted_emotion = label_encoder.inverse_transform(
             [predicted_index]
         )[0]
 
-        # ------------------------------------------
-        # SECTION 5 — Prediction Output
-        # ------------------------------------------
+        # ------------------------------------------------
+        # PREDICTION OUTPUT
+        # ------------------------------------------------
 
         st.markdown("---")
-        st.header("Prediction Result")
+
+        st.header("📊 Prediction Result")
 
         col1, col2, col3 = st.columns(3)
 
@@ -152,23 +103,25 @@ if predict_btn:
         )
 
         col2.metric(
-            "Confidence",
+            "Confidence Score",
             f"{confidence*100:.2f}%"
         )
 
         col3.metric(
-            "Emotional Status",
-            predicted_emotion
+            "Status",
+            "Analyzed"
         )
 
-        # ------------------------------------------
-        # SECTION 6 — Visualization
-        # ------------------------------------------
+        # ------------------------------------------------
+        # VISUALIZATION SECTION
+        # ------------------------------------------------
 
         st.markdown("---")
-        st.header("Visualization Area")
+
+        st.header("📈 Visualization Area")
 
         emotions = label_encoder.classes_
+
         probabilities = prediction[0]
 
         chart_df = pd.DataFrame({
@@ -176,24 +129,37 @@ if predict_btn:
             "Probability": probabilities
         })
 
+        st.subheader("📌 Emotion Probability Chart")
+
         st.bar_chart(
             chart_df.set_index("Emotion")
         )
 
+        st.subheader("📉 Sentiment Confidence Graph")
+
         fig, ax = plt.subplots(figsize=(8, 4))
-        ax.plot(emotions, probabilities, marker="o")
+
+        ax.plot(
+            emotions,
+            probabilities,
+            marker="o"
+        )
+
         ax.set_title("Sentiment Confidence Graph")
+
         ax.set_ylabel("Probability")
+
         ax.set_xlabel("Emotion")
 
         st.pyplot(fig)
 
-        # ------------------------------------------
-        # SECTION 7 — Emotional Guidance
-        # ------------------------------------------
+        # ------------------------------------------------
+        # GUIDANCE SECTION
+        # ------------------------------------------------
 
         st.markdown("---")
-        st.header("Emotional Guidance")
+
+        st.header("💡 Emotional Guidance")
 
         message = guidance.get(
             predicted_emotion,
@@ -202,17 +168,32 @@ if predict_btn:
 
         st.success(message)
 
-        st.write("### Positive Activity Suggestion")
-        st.write("✔ Take a short walk")
-        st.write("✔ Practice mindfulness")
-        st.write("✔ Listen to calming music")
-        st.write("✔ Talk with a trusted friend")
+        # ------------------------------------------------
+        # POSITIVE ACTIVITIES
+        # ------------------------------------------------
 
-        st.write("### Wellness Tips")
-        st.write("""
-        - Maintain healthy sleep habits.
-        - Stay hydrated.
-        - Exercise regularly.
-        - Limit excessive stress exposure.
-        - Seek professional help if needed.
-        """)
+        st.subheader("🌿 Positive Activity Suggestions")
+
+        st.markdown("""
+• ✔ Take a short walk  
+• ✔ Practice mindfulness  
+• ✔ Listen to calming music  
+• ✔ Talk with a trusted friend  
+• ✔ Drink enough water  
+• ✔ Maintain healthy sleep  
+""")
+
+        # ------------------------------------------------
+        # WELLNESS TIPS
+        # ------------------------------------------------
+
+        st.subheader("🩺 Wellness Tips")
+
+        st.markdown("""
+• Maintain healthy sleep habits  
+• Exercise regularly  
+• Avoid excessive stress exposure  
+• Stay connected with loved ones  
+• Seek professional help if needed  
+• Practice positive thinking  
+""")
