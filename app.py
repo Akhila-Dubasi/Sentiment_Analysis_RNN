@@ -5,32 +5,43 @@ import re
 import string
 import pickle
 import matplotlib.pyplot as plt
+import os
+import nltk
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import nltk
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# -----------------------------
-# DOWNLOAD NLTK FILES
-# -----------------------------
-nltk.download('punkt')
-nltk.download('stopwords')
+# =========================================================
+# SAFE NLTK DOWNLOAD
+# =========================================================
 
-# -----------------------------
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+# =========================================================
 # PAGE CONFIG
-# -----------------------------
+# =========================================================
+
 st.set_page_config(
     page_title="Mental Health Sentiment Monitoring",
     page_icon="🧠",
     layout="wide"
 )
 
-# -----------------------------
+# =========================================================
 # CUSTOM CSS
-# -----------------------------
+# =========================================================
+
 st.markdown("""
 <style>
 
@@ -41,6 +52,7 @@ st.markdown("""
 h1 {
     color: #1E3A5F;
     text-align: center;
+    font-weight: bold;
 }
 
 h2, h3 {
@@ -50,16 +62,22 @@ h2, h3 {
 .stButton>button {
     background-color: #1E88E5;
     color: white;
-    border-radius: 10px;
+    border-radius: 12px;
     height: 3em;
     width: 100%;
     font-size: 18px;
     font-weight: bold;
+    border: none;
+}
+
+.stButton>button:hover {
+    background-color: #1565C0;
 }
 
 .stTextArea textarea {
-    border-radius: 10px;
+    border-radius: 12px;
     border: 2px solid #1E88E5;
+    font-size: 16px;
 }
 
 .result-box {
@@ -67,13 +85,13 @@ h2, h3 {
     border-radius: 12px;
     background-color: #E3F2FD;
     color: #0D47A1;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
 }
 
 .guide-box {
-    padding: 15px;
-    border-radius: 10px;
+    padding: 18px;
+    border-radius: 12px;
     background-color: #FFF3E0;
     color: #E65100;
     font-size: 18px;
@@ -82,39 +100,64 @@ h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
-# LOAD MODEL & TOKENIZER
-# -----------------------------
-model = load_model("mental_health_rnn.keras")
+# =========================================================
+# LOAD MODEL & FILES
+# =========================================================
 
+MODEL_PATH = "mental_health_rnn.h5"
+
+if not os.path.exists(MODEL_PATH):
+    st.error("❌ Model file 'mental_health_rnn.h5' not found.")
+    st.stop()
+
+if not os.path.exists("tokenizer.pkl"):
+    st.error("❌ tokenizer.pkl not found.")
+    st.stop()
+
+if not os.path.exists("label_encoder.pkl"):
+    st.error("❌ label_encoder.pkl not found.")
+    st.stop()
+
+# Load model
+model = load_model(MODEL_PATH)
+
+# Load tokenizer
 with open("tokenizer.pkl", "rb") as f:
     tokenizer = pickle.load(f)
 
+# Load label encoder
 with open("label_encoder.pkl", "rb") as f:
     label_encoder = pickle.load(f)
 
-# -----------------------------
+# =========================================================
 # SETTINGS
-# -----------------------------
+# =========================================================
+
 MAX_LEN = 100
 
 stop_words = set(stopwords.words('english'))
 
-# -----------------------------
+# =========================================================
 # PREPROCESS FUNCTION
-# -----------------------------
+# =========================================================
+
 def preprocess_text(text):
 
+    # Lowercase
     text = text.lower()
 
+    # Remove punctuation
     text = text.translate(
         str.maketrans('', '', string.punctuation)
     )
 
+    # Remove numbers
     text = re.sub(r'\d+', '', text)
 
+    # Tokenization
     tokens = word_tokenize(text)
 
+    # Stopword removal
     tokens = [
         word for word in tokens
         if word not in stop_words
@@ -122,9 +165,10 @@ def preprocess_text(text):
 
     return " ".join(tokens)
 
-# -----------------------------
+# =========================================================
 # PREDICTION FUNCTION
-# -----------------------------
+# =========================================================
+
 def predict_emotion(text):
 
     cleaned = preprocess_text(text)
@@ -137,7 +181,7 @@ def predict_emotion(text):
         padding='post'
     )
 
-    prediction = model.predict(padded)
+    prediction = model.predict(padded, verbose=0)
 
     predicted_index = np.argmax(prediction)
 
@@ -149,9 +193,10 @@ def predict_emotion(text):
 
     return predicted_label, confidence, prediction[0]
 
-# -----------------------------
-# MOTIVATIONAL MESSAGES
-# -----------------------------
+# =========================================================
+# GUIDANCE MESSAGES
+# =========================================================
+
 guidance = {
     "Anxiety":
     "Take a deep breath. You are stronger than your worries.",
@@ -176,7 +221,7 @@ guidance = {
 }
 
 # =========================================================
-# SECTION 1 — HEADER
+# HEADER SECTION
 # =========================================================
 
 st.title("🧠 AI-Based Mental Health Sentiment Monitoring System")
@@ -186,7 +231,7 @@ st.markdown("""
 """)
 
 # =========================================================
-# SECTION 2 — ABOUT PROJECT
+# ABOUT PROJECT
 # =========================================================
 
 st.header("📘 About the Project")
@@ -212,13 +257,14 @@ previous words using hidden states, making them useful for sentiment analysis.
 """)
 
 # =========================================================
-# SECTION 3 — USER INPUT
+# USER INPUT SECTION
 # =========================================================
 
 st.header("✍ User Text Input Area")
 
 st.markdown("""
 #### Sample Sentences
+
 - I feel emotionally exhausted and lonely.
 - Life feels beautiful and peaceful today.
 - I am stressed about my future.
@@ -227,26 +273,25 @@ st.markdown("""
 
 user_input = st.text_area(
     "Enter your thoughts or feelings here...",
-    height=180
+    height=200
 )
 
 # =========================================================
-# SECTION 4 — PREDICTION BUTTON
+# ANALYZE BUTTON
 # =========================================================
 
 if st.button("🔍 Analyze Emotion"):
 
     if user_input.strip() == "":
-
-        st.warning("Please enter some text.")
+        st.warning("⚠ Please enter some text.")
 
     else:
 
-        # Predict
+        # Prediction
         emotion, confidence, probs = predict_emotion(user_input)
 
         # =================================================
-        # SECTION 5 — PREDICTION OUTPUT
+        # OUTPUT SECTION
         # =================================================
 
         st.header("📊 Prediction Output")
@@ -254,12 +299,12 @@ if st.button("🔍 Analyze Emotion"):
         st.markdown(f"""
         <div class="result-box">
         Emotion Detected: {emotion}<br><br>
-        Confidence: {confidence:.2f}%
+        Confidence Score: {confidence:.2f}%
         </div>
         """, unsafe_allow_html=True)
 
         # Emotional status
-        if confidence > 80:
+        if confidence > 85:
             status = "High Confidence Detection"
         elif confidence > 60:
             status = "Moderate Confidence Detection"
@@ -269,7 +314,7 @@ if st.button("🔍 Analyze Emotion"):
         st.success(f"Emotional Status: {status}")
 
         # =================================================
-        # SECTION 6 — VISUALIZATION AREA
+        # VISUALIZATION SECTION
         # =================================================
 
         st.header("📈 Sentiment Confidence Graph")
@@ -289,7 +334,7 @@ if st.button("🔍 Analyze Emotion"):
         st.pyplot(fig)
 
         # =================================================
-        # SECTION 7 — EMOTIONAL GUIDANCE
+        # GUIDANCE SECTION
         # =================================================
 
         st.header("💡 Emotional Guidance")
