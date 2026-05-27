@@ -374,7 +374,7 @@ st.markdown("---")
 st.markdown("""
 <div style='text-align:center; color:#94a3b8;'>
 
-Used Streamlit, TensorFlow & NLP
+Made with ❤️ using Streamlit, TensorFlow & NLP
 
 </div>
 """, unsafe_allow_html=True)
