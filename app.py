@@ -103,11 +103,11 @@ h2, h3 {
 # LOAD MODEL & FILES
 # =========================================================
 
-MODEL_PATH = "mental_health_rnn.h5"
+MODEL_PATH = "mental_health_rnn_model.h5"
 
 # Check model file
 if not os.path.exists(MODEL_PATH):
-    st.error("❌ Model file 'mental_health_rnn.h5' not found.")
+    st.error("❌ Model file 'mental_health_rnn_model.h5' not found.")
     st.stop()
 
 # Check tokenizer
